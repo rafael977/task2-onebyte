@@ -38,19 +38,31 @@ int onebyte_release(struct inode *inode, struct file *filep)
 
 ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
 {
-  copy_to_user(buf, onebyte_data, sizeof(char));
-  return sizeof(char);
+  ssize_t bytesRead = 0;
+  
+  if(*f_pos == 0) {
+    copy_to_user(buf, onebyte_data, sizeof(char));
+    (*f_pos)++;
+    bytesRead = sizeof(char);
+  }
+  return bytesRead;
 }
 
 ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
 {
-  copy_from_user(onebyte_data, buf, sizeof(char));
-  if(count > sizeof(char)) {
-    printk(KERN_ALERT "Not enough space on device.");
-    return -ENOSPC;
-  }
+  ssize_t bytesWrite = 0;
 
-  return sizeof(char);
+  if(*f_pos == 0 && count > 0) {
+    copy_from_user(onebyte_data, buf, sizeof(char));
+    bytesWrite = sizeof(char);
+    (*f_pos)++;
+
+    if(count > sizeof(char)) {
+      printk(KERN_ALERT "Not enough space on device.");
+      return -ENOSPC;
+    }
+  }
+  return bytesWrite;
 }
 
 static int onebyte_init(void)
